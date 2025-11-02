@@ -31,14 +31,6 @@ export default function App() {
     return array;
   };
 
-  // ===== Avoid repeating last position =====
-  const pickNames = (namesPool, position, count) => {
-    const available = namesPool.filter((n) => lastAssignments[n] !== position);
-    const source = available.length >= count ? available : namesPool;
-    const shuffled = shuffle(source);
-    return shuffled.slice(0, count);
-  };
-
   // ===== Generate Random Shift =====
   // counts how many times `name` has held `position` in recent shifts
   const countPositionHistory = (history, name, position) =>
