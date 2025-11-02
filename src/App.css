@@ -49,6 +49,26 @@ textarea {
   resize: vertical;
 }
 
+/* Dropdown for shift type */
+select.dropdown {
+  width: 100%;
+  padding: 0.6rem;
+  font-size: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  -webkit-appearance: none;
+  appearance: none;
+  font-family: inherit;
+}
+
+select.dropdown:focus {
+  outline: none;
+  border-color: #007aff;
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+
 /* ===== Inline Input Row ===== */
 .inline-input {
   display: flex;
@@ -113,12 +133,12 @@ button:active {
   transform: scale(0.98);
 }
 
-/* Green Add Buttons */
-.add-btn {
+/* Generate Buttons */
+.gen-btn {
   background-color: #34c759;
 }
 
-.add-btn:hover {
+.gen-btn:hover {
   background-color: #2da94f;
 }
 

@@ -15,11 +15,13 @@ export default function App() {
     "BNB",
   ]);
   const [output, setOutput] = useState("");
+  const [shiftType, setShiftType] = useState(""); // NEW: dropdown value
 
   const [lastAssignments, setLastAssignments] = useState(
     JSON.parse(localStorage.getItem("lastAssignments") || "{}")
   );
 
+  // ===== Shuffle Helper =====
   const shuffle = (arr) => {
     const array = [...arr];
     for (let i = array.length - 1; i > 0; i--) {
@@ -29,6 +31,7 @@ export default function App() {
     return array;
   };
 
+  // ===== Avoid repeating last position =====
   const pickNames = (namesPool, position, count) => {
     const available = namesPool.filter((n) => lastAssignments[n] !== position);
     const source = available.length >= count ? available : namesPool;
@@ -36,6 +39,7 @@ export default function App() {
     return shuffled.slice(0, count);
   };
 
+  // ===== Generate Random Shift =====
   const generate = () => {
     let names = namesText
       .split(/[\n,]+/)
@@ -70,20 +74,44 @@ export default function App() {
     setLastAssignments(newAssignments);
   };
 
+  // ===== Add & Delete Time Slots =====
   const addTime = () => setTimes([...times, `@${times.length * 3 + 7}`]);
   const deleteTime = (index) => {
     if (times.length <= 1) {
       alert("You must have at least one time slot.");
       return;
     }
-    setTimes(times.filter((_, i) => i !== index));
+    const updated = times.filter((_, i) => i !== index);
+    setTimes(updated);
   };
 
+  // ===== Add & Delete Positions =====
   const addPosition = () => setPositions([...positions, ""]);
   const deletePosition = (index) => {
-    setPositions(positions.filter((_, i) => i !== index));
+    const updated = positions.filter((_, i) => i !== index);
+    setPositions(updated);
   };
 
+  // ===== Handle Shift Type Selection =====
+  const handleShiftSelect = (value) => {
+    setShiftType(value);
+    switch (value) {
+      case "morning":
+        setTimes(["@7", "@10"]);
+        break;
+      case "mid":
+        setTimes(["@12", "@3"]);
+        break;
+      case "close":
+        setTimes(["@5", "@8"]);
+        break;
+      default:
+        setTimes(["@7", "@10"]);
+        break;
+    }
+  };
+
+  // ===== Render =====
   return (
     <div className="app">
       <h1>Shift Position Generator ☕</h1>
@@ -97,6 +125,21 @@ export default function App() {
           value={namesText}
           onChange={(e) => setNamesText(e.target.value)}
         />
+      </div>
+
+      {/* === Shift Type Dropdown === */}
+      <div className="section">
+        <h3>Shift Type</h3>
+        <select
+          value={shiftType}
+          onChange={(e) => handleShiftSelect(e.target.value)}
+          className="dropdown"
+        >
+          <option value="">Select a shift</option>
+          <option value="morning">Morning</option>
+          <option value="mid">Mid</option>
+          <option value="close">Close</option>
+        </select>
       </div>
 
       {/* === Times === */}
@@ -123,7 +166,7 @@ export default function App() {
             </button>
           </div>
         ))}
-        <button className="add-btn" onClick={addTime}>
+        <button onClick={addTime}>
           + Add Time
         </button>
       </div>
@@ -152,14 +195,14 @@ export default function App() {
             </button>
           </div>
         ))}
-        <button className="add-btn" onClick={addPosition}>
+        <button onClick={addPosition}>
           + Add Position
         </button>
       </div>
 
       {/* === Generate === */}
       <div className="section">
-        <button onClick={generate}>Generate Random Shift</button>
+        <button className="gen-btn" onClick={generate}>Generate Random Shift</button>
       </div>
 
       {/* === Output === */}
