@@ -16,12 +16,10 @@ export default function App() {
   ]);
   const [output, setOutput] = useState("");
 
-  // Load past assignments from localStorage
   const [lastAssignments, setLastAssignments] = useState(
     JSON.parse(localStorage.getItem("lastAssignments") || "{}")
   );
 
-  // Helper: shuffle array
   const shuffle = (arr) => {
     const array = [...arr];
     for (let i = array.length - 1; i > 0; i--) {
@@ -31,18 +29,11 @@ export default function App() {
     return array;
   };
 
-  // Helper: pick names avoiding same position if possible
   const pickNames = (namesPool, position, count) => {
     const available = namesPool.filter((n) => lastAssignments[n] !== position);
-    let chosen = [];
     const source = available.length >= count ? available : namesPool;
-
-    // Randomly pick names from source
     const shuffled = shuffle(source);
-    for (let i = 0; i < count && shuffled.length > 0; i++) {
-      chosen.push(shuffled.pop());
-    }
-    return chosen;
+    return shuffled.slice(0, count);
   };
 
   const generate = () => {
@@ -60,17 +51,13 @@ export default function App() {
     let namesPool = shuffle(names);
     let newAssignments = {};
     let lines = [times.join(" // ")];
-    let used = new Set();
 
     for (let pos of positions) {
       let rolePeople = [];
       for (let i = 0; i < numTimes; i++) {
-        // Refill pool if we run out
         if (namesPool.length === 0) namesPool = shuffle(names);
-
         const choice = pickNames(namesPool, pos, 1)[0];
         rolePeople.push(choice);
-        used.add(choice);
         namesPool = namesPool.filter((n) => n !== choice);
         newAssignments[choice] = pos;
       }
@@ -84,12 +71,24 @@ export default function App() {
   };
 
   const addTime = () => setTimes([...times, `@${times.length * 3 + 7}`]);
+  const deleteTime = (index) => {
+    if (times.length <= 1) {
+      alert("You must have at least one time slot.");
+      return;
+    }
+    setTimes(times.filter((_, i) => i !== index));
+  };
+
   const addPosition = () => setPositions([...positions, ""]);
+  const deletePosition = (index) => {
+    setPositions(positions.filter((_, i) => i !== index));
+  };
 
   return (
     <div className="app">
       <h1>Shift Position Generator ☕</h1>
 
+      {/* === Names === */}
       <div className="section">
         <h3>Names List</h3>
         <textarea
@@ -100,42 +99,70 @@ export default function App() {
         />
       </div>
 
+      {/* === Times === */}
       <div className="section">
         <h3>Times</h3>
         {times.map((t, i) => (
-          <input
-            key={i}
-            value={t}
-            onChange={(e) => {
-              const updated = [...times];
-              updated[i] = e.target.value;
-              setTimes(updated);
-            }}
-          />
+          <div key={i} className="inline-input">
+            <input
+              type="text"
+              value={t}
+              onChange={(e) => {
+                const updated = [...times];
+                updated[i] = e.target.value;
+                setTimes(updated);
+              }}
+            />
+            <button
+              type="button"
+              className="delete-btn"
+              onClick={() => deleteTime(i)}
+              title="Delete this time"
+            >
+              ×
+            </button>
+          </div>
         ))}
-        <button onClick={addTime}>+ Add Time</button>
+        <button className="add-btn" onClick={addTime}>
+          + Add Time
+        </button>
       </div>
 
+      {/* === Positions === */}
       <div className="section">
         <h3>Positions</h3>
         {positions.map((p, i) => (
-          <input
-            key={i}
-            value={p}
-            onChange={(e) => {
-              const updated = [...positions];
-              updated[i] = e.target.value;
-              setPositions(updated);
-            }}
-          />
+          <div key={i} className="inline-input">
+            <input
+              type="text"
+              value={p}
+              onChange={(e) => {
+                const updated = [...positions];
+                updated[i] = e.target.value;
+                setPositions(updated);
+              }}
+            />
+            <button
+              type="button"
+              className="delete-btn"
+              onClick={() => deletePosition(i)}
+              title="Delete this position"
+            >
+              ×
+            </button>
+          </div>
         ))}
-        <button onClick={addPosition}>+ Add Position</button>
+        <button className="add-btn" onClick={addPosition}>
+          + Add Position
+        </button>
       </div>
 
+      {/* === Generate === */}
       <div className="section">
         <button onClick={generate}>Generate Random Shift</button>
       </div>
 
+      {/* === Output === */}
       <div className="section">
         <h3>Generated Message</h3>
         <textarea readOnly rows="10" value={output} />
