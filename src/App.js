@@ -40,11 +40,15 @@ export default function App() {
   };
 
   // ===== Generate Random Shift =====
+  // counts how many times `name` has held `position` in recent shifts
+  const countPositionHistory = (history, name, position) =>
+    history.reduce((acc, shift) => (shift[name] === position ? acc + 1 : acc), 0);
+
   const generate = () => {
-    let names = namesText
+    const names = namesText
       .split(/[\n,]+/)
       .map((n) => n.trim())
-      .filter((n) => n.length > 0);
+      .filter(Boolean);
 
     if (names.length < positions.length) {
       alert("Not enough names for all positions!");
@@ -52,24 +56,55 @@ export default function App() {
     }
 
     const numTimes = times.length;
-    let namesPool = shuffle(names);
-    let newAssignments = {};
-    let lines = [times.join(" // ")];
 
-    for (let pos of positions) {
-      let rolePeople = [];
-      for (let i = 0; i < numTimes; i++) {
-        if (namesPool.length === 0) namesPool = shuffle(names);
-        const choice = pickNames(namesPool, pos, 1)[0];
-        rolePeople.push(choice);
-        namesPool = namesPool.filter((n) => n !== choice);
-        newAssignments[choice] = pos;
+    // load recent shifts for fairness (rolling memory)
+    const shiftHistory = JSON.parse(localStorage.getItem("shiftHistory") || "[]");
+
+    // roleMap: { L1: [nameAtTime0, nameAtTime1, ...], L2: [...], ... }
+    const roleMap = {};
+    positions.forEach((p) => (roleMap[p] = Array(numTimes).fill("")));
+
+    // assign **per time column** to guarantee uniqueness within each time
+    for (let tIdx = 0; tIdx < numTimes; tIdx++) {
+      // unique pool for this column
+      let pool = shuffle([...names]); // every person available once per column
+
+      for (const pos of positions) {
+        // prefer people who haven't done this position recently and didn't do it last shift
+        let candidates = pool.filter((n) => lastAssignments[n] !== pos);
+        if (candidates.length === 0) candidates = [...pool]; // if everyone did it last time, fall back
+
+        // sort by historical frequency (fewer times in this role come first)
+        candidates.sort(
+          (a, b) =>
+            countPositionHistory(shiftHistory, a, pos) -
+            countPositionHistory(shiftHistory, b, pos)
+        );
+
+        const chosen = candidates[0];
+
+        // place and remove from this column's pool so they can't appear twice at the same time
+        roleMap[pos][tIdx] = chosen;
+        pool = pool.filter((n) => n !== chosen);
       }
-      lines.push(`${pos}: ${rolePeople.join(" // ")}`);
+    }
+
+    // build message + “lastAssignments” for the next run
+    const newAssignments = {};
+    const lines = [times.join(" // ")];
+    for (const pos of positions) {
+      const row = roleMap[pos];
+      lines.push(`${pos}: ${row.join(" // ")}`);
+      // set last assignment per person to this position (any column is fine; last one wins)
+      row.forEach((name) => (newAssignments[name] = pos));
     }
 
     const message = lines.join("\n");
     setOutput(message);
+
+    // persist memory (keep last 10 shifts)
+    const updatedHistory = [newAssignments, ...shiftHistory].slice(0, 10);
+    localStorage.setItem("shiftHistory", JSON.stringify(updatedHistory));
     localStorage.setItem("lastAssignments", JSON.stringify(newAssignments));
     setLastAssignments(newAssignments);
   };
