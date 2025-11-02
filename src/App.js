@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import "./App.css";
 
 export default function App() {
@@ -15,7 +15,7 @@ export default function App() {
     "BNB",
   ]);
   const [output, setOutput] = useState("");
-  const [shiftType, setShiftType] = useState(""); // NEW: dropdown value
+  const [shiftType, setShiftType] = useState("");
 
   const [lastAssignments, setLastAssignments] = useState(
     JSON.parse(localStorage.getItem("lastAssignments") || "{}")
@@ -219,6 +219,7 @@ export default function App() {
           Copy Message
         </button>
       </div>
+      <h5>Created by Thomas Nguyen</h5>
     </div>
   );
 }
