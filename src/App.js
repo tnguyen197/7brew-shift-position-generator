@@ -189,14 +189,16 @@ export default function App() {
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
-                          className={`inline-input draggable-item ${snapshot.isDragging ? "dragging" : ""
-                            }`}
+                          className={`inline-input draggable-item ${
+                            snapshot.isDragging ? "dragging" : ""
+                          }`}
                           style={provided.draggableProps.style}
                         >
                           <span
                             {...provided.dragHandleProps}
                             className="drag-handle"
                             title="Drag to reorder"
+                            onTouchStart={(e) => e.preventDefault()}
                           >
                             ☰
                           </span>
@@ -220,9 +222,9 @@ export default function App() {
                       );
                       return snapshot.isDragging
                         ? ReactDOM.createPortal(
-                          content,
-                          document.getElementById("dnd-portal")
-                        )
+                            content,
+                            document.getElementById("dnd-portal")
+                          )
                         : content;
                     }}
                   </Draggable>
@@ -256,14 +258,16 @@ export default function App() {
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
-                          className={`inline-input draggable-item ${snapshot.isDragging ? "dragging" : ""
-                            }`}
+                          className={`inline-input draggable-item ${
+                            snapshot.isDragging ? "dragging" : ""
+                          }`}
                           style={provided.draggableProps.style}
                         >
                           <span
                             {...provided.dragHandleProps}
                             className="drag-handle"
                             title="Drag to reorder"
+                            onTouchStart={(e) => e.preventDefault()}
                           >
                             ☰
                           </span>
@@ -287,9 +291,9 @@ export default function App() {
                       );
                       return snapshot.isDragging
                         ? ReactDOM.createPortal(
-                          content,
-                          document.getElementById("dnd-portal")
-                        )
+                            content,
+                            document.getElementById("dnd-portal")
+                          )
                         : content;
                     }}
                   </Draggable>

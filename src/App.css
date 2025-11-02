@@ -5,6 +5,10 @@
   padding: 1rem;
   max-width: 600px;
   text-align: center;
+  position: relative;
+  max-width: 100%;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ===== Section Spacing ===== */
@@ -49,7 +53,7 @@ textarea {
   resize: vertical;
 }
 
-/* Dropdown for shift type */
+/* ===== Dropdown for shift type ===== */
 select.dropdown {
   width: 100%;
   padding: 0.6rem;
@@ -68,7 +72,6 @@ select.dropdown:focus {
   box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
 }
 
-
 /* ===== Inline Input Row ===== */
 .inline-input {
   display: flex;
@@ -76,6 +79,8 @@ select.dropdown:focus {
   justify-content: space-between;
   gap: 0.4rem;
   margin-bottom: 0.4rem;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .inline-input input {
@@ -133,7 +138,7 @@ button:active {
   transform: scale(0.98);
 }
 
-/* Generate Buttons */
+/* ===== Generate Buttons ===== */
 .gen-btn {
   background-color: #34c759;
 }
@@ -182,13 +187,26 @@ textarea[readonly] {
 }
 
 /* ===== Page Background & Scroll ===== */
-body {
-  background-color: #ffffff;
+html, body {
   margin: 0;
-  overscroll-behavior-y: contain;
+  padding: 0;
+  overflow-x: hidden;
+  height: 100%;
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+  background-color: #ffffff;
 }
 
-/* ===== Drag & Drop Smooth Motion ===== */
+/* ===== Drag & Drop Enhancements ===== */
+.droppable {
+  position: relative;
+  min-height: 10px;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Smooth drag visuals */
 .draggable-item {
   transition: box-shadow 180ms ease, background-color 180ms ease;
   will-change: transform;
@@ -199,37 +217,33 @@ body {
   background: #e7f3ff;
   box-shadow: 0 8px 16px rgba(0, 122, 255, 0.25);
   transform: scale(1.03);
-  z-index: 10;
+  z-index: 9999;
+  pointer-events: none;
+  position: fixed !important;
+  left: 0;
+  right: 0;
 }
 
-/* Items that are not being dragged should glide out of the way smoothly */
-.droppable > * {
-  transition: none;
-}
-
-.droppable {
-  position: relative;
-  min-height: 10px; /* keeps layout stable while dragging */
-  will-change: transform;
-  transform: translateZ(0);
-}
-
-/* Add subtle fade for placeholder space */
-.droppable-placeholder {
-  opacity: 0.6;
-  transition: opacity 200ms ease;
-}
-
-/* Drag handle improvements */
+/* Drag handle (☰ icon) */
 .drag-handle {
-  font-size: 1.3rem;
-  color: #777;
-  cursor: grab;
-  user-select: none;
-  padding-right: 0.4rem;
-  flex-shrink: 0;
-  transition: color 0.2s ease, transform 0.2s ease;
   touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: grab;
+  padding: 0.6rem 0.8rem; /* slightly bigger finger target */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: 0.3rem;
+  min-width: 36px; /* larger hit area */
+  pointer-events: auto;
+  -webkit-touch-callout: none; /* prevent iOS context menu */
+}
+
+.drag-handle:hover {
+  color: #007aff;
+  background-color: rgba(0, 122, 255, 0.05);
 }
 
 .drag-handle:active {
@@ -237,60 +251,7 @@ body {
   transform: scale(1.1);
 }
 
-.drag-handle:hover {
-  color: #007aff;
-}
-
-@keyframes snap-back {
-  0% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.draggable-item:not(.dragging) {
-  animation: snap-back 150ms ease-out;
-}
-
-.inline-input {
-  will-change: transform;
-  transform: translateZ(0);
-}
-
-html, body {
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-  height: 100%;
-  touch-action: manipulation;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: none;
-}
-
-.app {
-  position: relative;
-  max-width: 100%;
-  overflow-x: hidden;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.droppable {
-  position: relative;
-  min-height: 10px;
-  transform: none !important; /* prevents coordinate mismatch on iOS */
-}
-
-.drag-handle {
-  touch-action: none;
-}
-
-.dragging {
-  position: fixed !important;
-  left: 0;
-  right: 0;
-  transform: scale(1.03);
-  z-index: 9999;
-  pointer-events: none;
+.drag-handle:focus,
+.drag-handle:focus-visible {
+  outline: none;
 }
