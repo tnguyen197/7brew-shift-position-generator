@@ -187,3 +187,110 @@ body {
   margin: 0;
   overscroll-behavior-y: contain;
 }
+
+/* ===== Drag & Drop Smooth Motion ===== */
+.draggable-item {
+  transition: box-shadow 180ms ease, background-color 180ms ease;
+  will-change: transform;
+  min-height: 44px;
+}
+
+.draggable-item.dragging {
+  background: #e7f3ff;
+  box-shadow: 0 8px 16px rgba(0, 122, 255, 0.25);
+  transform: scale(1.03);
+  z-index: 10;
+}
+
+/* Items that are not being dragged should glide out of the way smoothly */
+.droppable > * {
+  transition: none;
+}
+
+.droppable {
+  position: relative;
+  min-height: 10px; /* keeps layout stable while dragging */
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Add subtle fade for placeholder space */
+.droppable-placeholder {
+  opacity: 0.6;
+  transition: opacity 200ms ease;
+}
+
+/* Drag handle improvements */
+.drag-handle {
+  font-size: 1.3rem;
+  color: #777;
+  cursor: grab;
+  user-select: none;
+  padding-right: 0.4rem;
+  flex-shrink: 0;
+  transition: color 0.2s ease, transform 0.2s ease;
+  touch-action: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  transform: scale(1.1);
+}
+
+.drag-handle:hover {
+  color: #007aff;
+}
+
+@keyframes snap-back {
+  0% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.draggable-item:not(.dragging) {
+  animation: snap-back 150ms ease-out;
+}
+
+.inline-input {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  height: 100%;
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+}
+
+.app {
+  position: relative;
+  max-width: 100%;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.droppable {
+  position: relative;
+  min-height: 10px;
+  transform: none !important; /* prevents coordinate mismatch on iOS */
+}
+
+.drag-handle {
+  touch-action: none;
+}
+
+.dragging {
+  position: fixed !important;
+  left: 0;
+  right: 0;
+  transform: scale(1.03);
+  z-index: 9999;
+  pointer-events: none;
+}
