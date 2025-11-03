@@ -206,7 +206,6 @@ body {
 
 /* Smooth drag visuals */
 .draggable-item {
-  transition: box-shadow 180ms ease, background-color 180ms ease;
   will-change: transform;
   min-height: 44px;
 }
