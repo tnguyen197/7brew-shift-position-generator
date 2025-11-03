@@ -1,6 +1,7 @@
 /* ===== Base Layout ===== */
 .app {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
   margin: 0 auto;
   padding: 1rem;
   max-width: 600px;
@@ -79,8 +80,6 @@ select.dropdown:focus {
   justify-content: space-between;
   gap: 0.4rem;
   margin-bottom: 0.4rem;
-  will-change: transform;
-  transform: translateZ(0);
 }
 
 .inline-input input {
@@ -187,7 +186,8 @@ textarea[readonly] {
 }
 
 /* ===== Page Background & Scroll ===== */
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
@@ -202,8 +202,6 @@ html, body {
 .droppable {
   position: relative;
   min-height: 10px;
-  will-change: transform;
-  transform: translateZ(0);
 }
 
 /* Smooth drag visuals */
@@ -218,27 +216,21 @@ html, body {
   box-shadow: 0 8px 16px rgba(0, 122, 255, 0.25);
   transform: scale(1.03);
   z-index: 9999;
-  pointer-events: none;
-  position: fixed !important;
-  left: 0;
-  right: 0;
 }
 
-/* Drag handle (☰ icon) */
 .drag-handle {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   cursor: grab;
-  padding: 0.6rem 0.8rem; /* slightly bigger finger target */
+  padding: 0.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
-  border-radius: 0.3rem;
-  min-width: 36px; /* larger hit area */
-  pointer-events: auto;
-  -webkit-touch-callout: none; /* prevent iOS context menu */
+  border-radius: 0.4rem;
+  min-width: 40px;
+  -webkit-touch-callout: none;
 }
 
 .drag-handle:hover {

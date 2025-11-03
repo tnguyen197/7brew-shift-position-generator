@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import ReactDOM from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import "./App.css";
 
@@ -7,27 +6,16 @@ export default function App() {
   const [namesText, setNamesText] = useState("");
   const [times, setTimes] = useState(["@7", "@10"]);
   const [positions, setPositions] = useState([
-    "L1",
-    "L2",
-    "FS",
-    "FM",
-    "BS",
-    "BM",
-    "TXT",
-    "BNB",
+    "L1", "L2", "FS", "FM", "BS", "BM", "TXT", "BNB"
   ]);
   const [output, setOutput] = useState("");
   const [shiftType, setShiftType] = useState("");
   const [lastAssignments, setLastAssignments] = useState(
     JSON.parse(localStorage.getItem("lastAssignments") || "{}")
   );
-
-  // Create a portal container for dragged items (fixes mobile offset)
-  if (!document.getElementById("dnd-portal")) {
-    const portal = document.createElement("div");
-    portal.id = "dnd-portal";
-    document.body.appendChild(portal);
-  }
+  const [shiftHistory, setShiftHistory] = useState(
+    JSON.parse(localStorage.getItem("shiftHistory") || "[]")
+  );
 
   const shuffle = (arr) => {
     const array = [...arr];
@@ -53,7 +41,6 @@ export default function App() {
     }
 
     const numTimes = times.length;
-    const shiftHistory = JSON.parse(localStorage.getItem("shiftHistory") || "[]");
     const roleMap = {};
     positions.forEach((p) => (roleMap[p] = Array(numTimes).fill("")));
 
@@ -87,6 +74,7 @@ export default function App() {
     localStorage.setItem("shiftHistory", JSON.stringify(updatedHistory));
     localStorage.setItem("lastAssignments", JSON.stringify(newAssignments));
     setLastAssignments(newAssignments);
+    setShiftHistory(updatedHistory);
   };
 
   const addTime = () => setTimes([...times, `@${times.length * 3 + 7}`]);
@@ -129,15 +117,6 @@ export default function App() {
     else setPositions(items);
   };
 
-  // Prevent background scroll while dragging on mobile
-  const onDragStart = () => {
-    document.body.style.overflow = "hidden";
-  };
-  const onDragEndSafe = (result, type) => {
-    document.body.style.overflow = "auto";
-    handleDragEnd(result, type);
-  };
-
   return (
     <div className="app">
       <h1>Shift Position Generator ☕</h1>
@@ -171,10 +150,7 @@ export default function App() {
       {/* === TIMES === */}
       <div className="section">
         <h3>Times</h3>
-        <DragDropContext
-          onDragStart={onDragStart}
-          onDragEnd={(result) => onDragEndSafe(result, "times")}
-        >
+        <DragDropContext onDragEnd={(result) => handleDragEnd(result, "times")}>
           <Droppable droppableId="times-droppable">
             {(provided) => (
               <div
@@ -184,49 +160,39 @@ export default function App() {
               >
                 {times.map((t, i) => (
                   <Draggable key={`time-${i}`} draggableId={`time-${i}`} index={i}>
-                    {(provided, snapshot) => {
-                      const content = (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className={`inline-input draggable-item ${
-                            snapshot.isDragging ? "dragging" : ""
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`inline-input draggable-item ${snapshot.isDragging ? "dragging" : ""
                           }`}
-                          style={provided.draggableProps.style}
+                        style={provided.draggableProps.style}
+                      >
+                        <span
+                          {...provided.dragHandleProps}
+                          className="drag-handle"
+                          title="Drag to reorder"
                         >
-                          <span
-                            {...provided.dragHandleProps}
-                            className="drag-handle"
-                            title="Drag to reorder"
-                            onTouchStart={(e) => e.preventDefault()}
-                          >
-                            ☰
-                          </span>
-                          <input
-                            type="text"
-                            value={t}
-                            onChange={(e) => {
-                              const updated = [...times];
-                              updated[i] = e.target.value;
-                              setTimes(updated);
-                            }}
-                          />
-                          <button
-                            type="button"
-                            className="delete-btn"
-                            onClick={() => deleteTime(i)}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      );
-                      return snapshot.isDragging
-                        ? ReactDOM.createPortal(
-                            content,
-                            document.getElementById("dnd-portal")
-                          )
-                        : content;
-                    }}
+                          ☰
+                        </span>
+                        <input
+                          type="text"
+                          value={t}
+                          onChange={(e) => {
+                            const updated = [...times];
+                            updated[i] = e.target.value;
+                            setTimes(updated);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="delete-btn"
+                          onClick={() => deleteTime(i)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
                   </Draggable>
                 ))}
                 {provided.placeholder}
@@ -240,10 +206,7 @@ export default function App() {
       {/* === POSITIONS === */}
       <div className="section">
         <h3>Positions</h3>
-        <DragDropContext
-          onDragStart={onDragStart}
-          onDragEnd={(result) => onDragEndSafe(result, "positions")}
-        >
+        <DragDropContext onDragEnd={(result) => handleDragEnd(result, "positions")}>
           <Droppable droppableId="positions-droppable">
             {(provided) => (
               <div
@@ -253,49 +216,39 @@ export default function App() {
               >
                 {positions.map((p, i) => (
                   <Draggable key={`pos-${i}`} draggableId={`pos-${i}`} index={i}>
-                    {(provided, snapshot) => {
-                      const content = (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className={`inline-input draggable-item ${
-                            snapshot.isDragging ? "dragging" : ""
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`inline-input draggable-item ${snapshot.isDragging ? "dragging" : ""
                           }`}
-                          style={provided.draggableProps.style}
+                        style={provided.draggableProps.style}
+                      >
+                        <span
+                          {...provided.dragHandleProps}
+                          className="drag-handle"
+                          title="Drag to reorder"
                         >
-                          <span
-                            {...provided.dragHandleProps}
-                            className="drag-handle"
-                            title="Drag to reorder"
-                            onTouchStart={(e) => e.preventDefault()}
-                          >
-                            ☰
-                          </span>
-                          <input
-                            type="text"
-                            value={p}
-                            onChange={(e) => {
-                              const updated = [...positions];
-                              updated[i] = e.target.value;
-                              setPositions(updated);
-                            }}
-                          />
-                          <button
-                            type="button"
-                            className="delete-btn"
-                            onClick={() => deletePosition(i)}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      );
-                      return snapshot.isDragging
-                        ? ReactDOM.createPortal(
-                            content,
-                            document.getElementById("dnd-portal")
-                          )
-                        : content;
-                    }}
+                          ☰
+                        </span>
+                        <input
+                          type="text"
+                          value={p}
+                          onChange={(e) => {
+                            const updated = [...positions];
+                            updated[i] = e.target.value;
+                            setPositions(updated);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="delete-btn"
+                          onClick={() => deletePosition(i)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
                   </Draggable>
                 ))}
                 {provided.placeholder}
@@ -328,6 +281,7 @@ export default function App() {
         </button>
       </div>
       <h5>Created by Thomas Nguyen</h5>
+      <h6>v0.9</h6>
     </div>
   );
 }
