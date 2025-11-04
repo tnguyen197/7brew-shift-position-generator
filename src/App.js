@@ -16,60 +16,274 @@ export default function App() {
   const [shiftHistory, setShiftHistory] = useState(
     JSON.parse(localStorage.getItem("shiftHistory") || "[]")
   );
-
-  const shuffle = (arr) => {
-    const array = [...arr];
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-  };
+  const [laneText, setLaneText] = useState("");
 
   const countPositionHistory = (history, name, position) =>
     history.reduce((acc, shift) => (shift[name] === position ? acc + 1 : acc), 0);
 
   const generate = () => {
-    const names = namesText
+    const baseNames = namesText
       .split(/[\n,]+/)
       .map((n) => n.trim())
       .filter(Boolean);
 
-    if (names.length < positions.length) {
-      alert("Not enough names for all positions!");
+    const laneNames = (laneText || "")
+      .split(/[\n,]+/)
+      .map((n) => n.trim())
+      .filter(Boolean);
+
+    // Combined pool (dedupe)
+    const allNames = [...new Set([...baseNames, ...laneNames])];
+
+    // Build a position entry per row (unique key per index)
+    const posEntries = positions.map((label, idx) => ({
+      label: (label || "").trim(),
+      key: `${label || ""}__${idx}`,
+    })).filter(p => p.label); // drop blank labels
+
+    // Need total people >= total position rows
+    if (allNames.length < posEntries.length) {
+      alert(`Not enough names for all positions! You have ${allNames.length} total but need ${posEntries.length}.`);
       return;
     }
 
+    // Lane/Text guarantees -> each listed name can take L1/L2/TXT
+    const guaranteedMap = {};
+    for (const name of laneNames) guaranteedMap[name] = ["L1", "L2", "TXT"];
+
+    // roleMap keyed by unique position key (not label!)
     const numTimes = times.length;
     const roleMap = {};
-    positions.forEach((p) => (roleMap[p] = Array(numTimes).fill("")));
+    posEntries.forEach(pe => { roleMap[pe.key] = Array(numTimes).fill(""); });
+
+    // helper: has this person already held this label earlier this run?
+    const heldThisLabelEarlier = (name, label, tIdx) => {
+      // scan all entries with same label
+      for (const pe of posEntries) {
+        if (pe.label !== label) continue;
+        if (roleMap[pe.key].slice(0, tIdx).includes(name)) return true;
+      }
+      return false;
+    };
+
+    // shuffle helper
+    const shuffleArr = (arr) => {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
 
     for (let tIdx = 0; tIdx < numTimes; tIdx++) {
-      let pool = shuffle([...names]);
-      for (const pos of positions) {
-        let candidates = pool.filter((n) => lastAssignments[n] !== pos);
-        if (candidates.length === 0) candidates = [...pool];
+      let pool = shuffleArr([...allNames]);
+      const assignedThisSlot = new Set();
+
+      // === PASS 1: Fill all L1/L2/TXT slots using Lane/Text people first ===
+      const lanePositions = posEntries.filter(p =>
+        ["L1", "L2", "TXT"].includes(p.label)
+      );
+
+      // Create a fresh queue of lane-texters
+      let rotatedLanePeople = shuffleArr([...laneNames]);
+
+      // If none are defined, skip this pass
+      if (rotatedLanePeople.length > 0) {
+        // Randomize which lane slot gets filled first
+        const randomizedLaneSlots = shuffleArr([...lanePositions]);
+
+        for (const pe of randomizedLaneSlots) {
+          // If we’ve run out of lane people, stop assigning
+          if (rotatedLanePeople.length === 0) break;
+
+          // Pull the next available person
+          const name = rotatedLanePeople.shift();
+
+          roleMap[pe.key][tIdx] = name;
+          assignedThisSlot.add(name);
+          pool = pool.filter(n => n !== name);
+        }
+      }
+
+      // === PASS 2: Fill all remaining positions ===
+      const remainingPositions = posEntries.filter(
+        p => !["L1", "L2", "TXT", "BNB"].includes(p.label)
+      );
+
+      for (const pe of remainingPositions) {
+        if (roleMap[pe.key][tIdx]) continue;
+
+        if (pool.length === 0) {
+          alert("Not enough people to fill all positions!");
+          return;
+        }
+
+        // Filter candidates: not assigned this slot, avoid repeats, maintain fairness
+        let candidates = pool.filter(
+          n =>
+            !assignedThisSlot.has(n) &&
+            lastAssignments[n] !== pe.label &&
+            !roleMap[pe.key].slice(0, tIdx).includes(n)
+        );
+
+        // Relax if needed
+        if (candidates.length === 0) {
+          candidates = pool.filter(
+            n => !assignedThisSlot.has(n) && !roleMap[pe.key].slice(0, tIdx).includes(n)
+          );
+        }
+        if (candidates.length === 0) {
+          candidates = pool.filter(n => !assignedThisSlot.has(n));
+        }
+
+        // Sort by fairness (fewer historical counts first)
         candidates.sort(
           (a, b) =>
-            countPositionHistory(shiftHistory, a, pos) -
-            countPositionHistory(shiftHistory, b, pos)
+            countPositionHistory(shiftHistory, a, pe.label) -
+            countPositionHistory(shiftHistory, b, pe.label)
         );
+
         const chosen = candidates[0];
-        roleMap[pos][tIdx] = chosen;
-        pool = pool.filter((n) => n !== chosen);
+        roleMap[pe.key][tIdx] = chosen;
+        assignedThisSlot.add(chosen);
+        pool = pool.filter(n => n !== chosen);
+      }
+
+      // === STEP 1: assign guaranteed people first, in random order ===
+      const guaranteedEntries = shuffleArr(Object.entries(guaranteedMap));
+
+      for (const [name, prefLabels] of guaranteedEntries) {
+        if (!pool.includes(name) || assignedThisSlot.has(name)) continue;
+
+        // Build the list of unfilled slots (by index) that match any preferred label
+        // Randomize preferred labels too so they don't always pick L1 first.
+        const prefs = shuffleArr(prefLabels);
+
+        let chosenKey = null;
+
+        // strict pass: avoid lastAssignments and avoid same-label earlier in run
+        for (const prefLabel of prefs) {
+          for (const pe of posEntries) {
+            if (
+              pe.label === prefLabel &&
+              !roleMap[pe.key][tIdx] &&
+              !heldThisLabelEarlier(name, pe.label, tIdx) &&
+              lastAssignments[name] !== pe.label
+            ) {
+              chosenKey = pe.key; break;
+            }
+          }
+          if (chosenKey) break;
+        }
+
+        // relaxed pass: ignore lastAssignments but keep no same-label-earlier
+        if (!chosenKey) {
+          for (const prefLabel of prefs) {
+            for (const pe of posEntries) {
+              if (
+                pe.label === prefLabel &&
+                !roleMap[pe.key][tIdx] &&
+                !heldThisLabelEarlier(name, pe.label, tIdx)
+              ) {
+                chosenKey = pe.key; break;
+              }
+            }
+            if (chosenKey) break;
+          }
+        }
+
+        if (chosenKey) {
+          roleMap[chosenKey][tIdx] = name;
+          assignedThisSlot.add(name);
+          pool = pool.filter(n => n !== name);
+        }
+        // If no L1/L2/TXT slot was found, try to forcibly assign one
+        if (!chosenKey) {
+          for (const pe of posEntries) {
+            if (
+              ["L1", "L2", "TXT"].includes(pe.label) &&
+              !roleMap[pe.key][tIdx] &&
+              !assignedThisSlot.has(name)
+            ) {
+              chosenKey = pe.key;
+              break;
+            }
+          }
+          if (!chosenKey) {
+            alert(`Could not assign ${name} to an L1/L2/TXT slot!`);
+            return;
+          }
+        }
+      }
+
+      // === STEP 2: fill remaining unfilled slots (by unique key) ===
+      for (const pe of posEntries) {
+        if (roleMap[pe.key][tIdx]) continue; // already filled
+
+        if (pool.length === 0) {
+          alert("Not enough people to fill all positions after guaranteed assignments!");
+          return;
+        }
+
+        // Candidates:
+        // - not already assigned this time
+        // - avoid lastAssignments for this label
+        // - avoid same-label earlier in this run
+        let candidates = pool.filter(
+          (n) =>
+            !assignedThisSlot.has(n) &&
+            lastAssignments[n] !== pe.label &&
+            !heldThisLabelEarlier(n, pe.label, tIdx)
+        );
+
+        // Relax lastAssignments if needed
+        if (candidates.length === 0) {
+          candidates = pool.filter(
+            (n) => !assignedThisSlot.has(n) && !heldThisLabelEarlier(n, pe.label, tIdx)
+          );
+        }
+
+        // Last resort: anyone not yet assigned this slot
+        if (candidates.length === 0) {
+          candidates = pool.filter((n) => !assignedThisSlot.has(n));
+        }
+
+        if (candidates.length === 0) {
+          alert("Constraint conflict: cannot assign unique people to all positions this slot.");
+          return;
+        }
+
+        // Fairness: fewest times in this label historically
+        candidates.sort(
+          (a, b) =>
+            countPositionHistory(shiftHistory, a, pe.label) -
+            countPositionHistory(shiftHistory, b, pe.label)
+        );
+
+        const chosen = candidates[0];
+        roleMap[pe.key][tIdx] = chosen;
+        assignedThisSlot.add(chosen);
+        pool = pool.filter(n => n !== chosen);
       }
     }
 
+    // === Output & history ===
     const newAssignments = {};
     const lines = [times.join(" // ")];
-    for (const pos of positions) {
-      const row = roleMap[pos];
-      lines.push(`${pos}: ${row.join(" // ")}`);
-      row.forEach((name) => (newAssignments[name] = pos));
+
+    // Print rows in the same order as the positions list
+    for (const pe of posEntries) {
+      const row = roleMap[pe.key];
+      lines.push(`${pe.label}: ${row.join(" // ")}`);
+      row.forEach((name) => {
+        if (name) newAssignments[name] = pe.label;
+      });
     }
 
     const message = lines.join("\n");
     setOutput(message);
+
     const updatedHistory = [newAssignments, ...shiftHistory].slice(0, 10);
     localStorage.setItem("shiftHistory", JSON.stringify(updatedHistory));
     localStorage.setItem("lastAssignments", JSON.stringify(newAssignments));
@@ -129,6 +343,17 @@ export default function App() {
           rows="5"
           value={namesText}
           onChange={(e) => setNamesText(e.target.value)}
+        />
+      </div>
+
+      {/* === Lane/Text Guarantee === */}
+      <div className="section">
+        <h3>Lane/Text Guarantee</h3>
+        <textarea
+          placeholder="Enter names to guarantee L1, L2, or TXT"
+          rows="3"
+          value={laneText}
+          onChange={(e) => setLaneText(e.target.value)}
         />
       </div>
 
